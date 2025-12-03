@@ -1,12 +1,11 @@
 import pygame, sys
 from sudoku_generator import SudokuGenerator
 
-# --- CONSTANTS ---
 WIDTH = 630
 HEIGHT = 700
 CELL_SIZE = 70
 
-# Colors
+#colors
 BG_COLOR = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (128, 128, 128)
@@ -14,13 +13,16 @@ RED = (255, 0, 0)
 ORANGE = (255, 165, 0)
 WHITE = (255, 255, 255)
 
-# Fonts
+#fonts
 TITLE_FONT_SIZE = 70
 BUTTON_FONT_SIZE = 30
 NUM_FONT_SIZE = 40
 GAME_OVER_FONT_SIZE = 60
 
 
+#Cell Class
+# Represents a square in the sudoku grid.
+# Stores the permanent value, temporary value, and the cell selection status.
 class Cell:
     def __init__(self, value, row, col, screen):
         self.value = value
@@ -36,18 +38,17 @@ class Cell:
     def set_sketched_value(self, value):
         self.sketched_value = value
 
+
     def draw(self):
         x = self.col * CELL_SIZE
         y = self.row * CELL_SIZE
 
         if self.value != 0:
-            # Draw official value (Permanent)
             font = pygame.font.Font(None, NUM_FONT_SIZE)
             text = font.render(str(self.value), True, BLACK)
             text_rect = text.get_rect(center=(x + CELL_SIZE // 2, y + CELL_SIZE // 2))
             self.screen.blit(text, text_rect)
         elif self.sketched_value != 0:
-            # Draw sketched value (User Draft)
             font = pygame.font.Font(None, NUM_FONT_SIZE)
             text = font.render(str(self.sketched_value), True, BLACK)
             text_rect = text.get_rect(center=(x + CELL_SIZE // 2, y + CELL_SIZE // 2))
@@ -57,6 +58,8 @@ class Cell:
             pygame.draw.rect(self.screen, RED, (x, y, CELL_SIZE, CELL_SIZE), 3)
 
 
+# Board Class
+# Manages the sudoku generation, solution and puzzle boards, cell objects, and the user interaction logic
 class Board:
     def __init__(self, width, height, screen, difficulty):
         self.width = width
@@ -72,8 +75,9 @@ class Board:
         else:
             self.removed_cells = 50
 
-        # --- GENERATION LOGIC ---
-        # Ensures valid board is created
+
+        # Generates a board using sudoku_generator
+        # ensures the generator produces a correct board
         while True:
             self.generator = SudokuGenerator(9, self.removed_cells)
             self.generator.fill_values()
@@ -86,19 +90,17 @@ class Board:
             if valid_gen:
                 break
 
-                # 1. Save the Solution
+
         self.solution_board = [row[:] for row in self.generator.get_board()]
 
-        # 2. Remove cells to create the puzzle
+
         self.generator.remove_cells()
 
-        # 3. Create the Puzzle Board (Has 0s and Pre-filled numbers)
+
         self.puzzle_board = [row[:] for row in self.generator.get_board()]
         self.original_board = [row[:] for row in self.puzzle_board]
 
-        # 4. Initialize Visual Cells
-        # Note: If puzzle_board has a number, Cell.value gets that number immediately.
-        # This ensures pre-filled numbers are counted as "Values", not "Sketches".
+
         self.cells = [
             [Cell(self.puzzle_board[r][c], r, c, self.screen) for c in range(9)]
             for r in range(9)
@@ -156,15 +158,12 @@ class Board:
         self.update_board()
 
     def update_board(self):
-        # Syncs visuals to internal data logic
-        # This captures both Pre-filled values AND User Filled values
+
         self.puzzle_board = [[self.cells[r][c].value for c in range(9)] for r in range(9)]
 
     def is_full(self):
-        # Ensure we are looking at the latest data
         self.update_board()
 
-        # Check for empty spots (0s)
         for row in self.puzzle_board:
             for val in row:
                 if val == 0:
@@ -175,7 +174,6 @@ class Board:
         self.update_board()
         for r in range(9):
             for c in range(9):
-                # Compare current board vs solution
                 if self.puzzle_board[r][c] != self.solution_board[r][c]:
                     return False
         return True
@@ -249,6 +247,9 @@ def draw_game_won(screen):
     return exit_rect
 
 
+
+# Main game loop
+# Handles the game states, mouse selection, keyboard inputs, and rendering
 def main():
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -340,10 +341,7 @@ def main():
                     if event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE:
                         board.clear()
 
-                    # --- ENTER KEY LOGIC ---
                     if event.key == pygame.K_RETURN:
-                        # 1. Commit ALL sketched numbers to permanent values
-                        # This includes any sketches you made but didn't press enter on individually
                         for r in range(9):
                             for c in range(9):
                                 cell = board.cells[r][c]
@@ -351,10 +349,8 @@ def main():
                                     cell.value = cell.sketched_value
                                     cell.sketched_value = 0
 
-                        # 2. Update the internal board with the visuals
                         board.update_board()
 
-                        # 3. Check for Win/Loss
                         if board.is_full():
                             if board.check_board():
                                 game_state = "WIN"

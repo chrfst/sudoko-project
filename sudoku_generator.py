@@ -1,6 +1,8 @@
 import math, random
 
-
+#Sudoku generator class
+# Creates a solved sudoku board and then removes cells to generate a playable puzzle
+# Works for any grid with a size that is a perfect square (9x9)
 class SudokuGenerator:
     def __init__(self, row_length, removed_cells):
         self.row_length = row_length
@@ -15,6 +17,8 @@ class SudokuGenerator:
         for row in self.board:
             print(row)
 
+# Checks for validity
+# Ensures sudoku rules are followed
     def valid_in_row(self, row, num):
         if num in self.board[row]:
             return False
@@ -90,21 +94,12 @@ class SudokuGenerator:
                 count -= 1
 
 
+
 def generate_sudoku(size, removed):
-    # Retry loop: Ensures we never return a broken/unsolvable board
-    while True:
-        sudoku = SudokuGenerator(size, removed)
-        sudoku.fill_values()
+    sudoku = SudokuGenerator(size, removed)
+    sudoku.fill_values()
+    board = sudoku.get_board()
+    sudoku.remove_cells()
+    board = sudoku.get_board()
+    return board
 
-        # Check if the board is actually full (valid solution found)
-        is_full_solution = True
-        for row in sudoku.get_board():
-            if 0 in row:
-                is_full_solution = False
-                break
-
-        if is_full_solution:
-            # If valid, proceed to remove cells and return
-            sudoku.remove_cells()
-            return sudoku.get_board()
-        # If not valid, the loop restarts and generates a new random seed
