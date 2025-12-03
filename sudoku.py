@@ -1,78 +1,110 @@
-import pygame
-pygame.init()
-# sudoku = SudokuGenerator(9, 40)  # 40 cells removed
-# sudoku.fill_values()
-# board = sudoku.get_board()
-class Cell:
-    def __init__(self, row, col, width, height, number = 0):
-        self.row = row
-        self.col = col
-        self.width = width
-        self.height = height
-        self.color = "beige"
-        self.number = number
-        self.rect = pygame.Rect(col * width, row * height, width, height)
-        self.font = pygame.font.SysFont(None, 40)
-    def draw(self, screen):
-        pygame.draw.rect(screen, self.color, self.rect, width = 1)
-        if self.number != 0:
-            text = self.font.render(str(self.number), True, "black")
-            text_rect = text.get_rect(center=self.rect.center)
-            screen.blit(text, text_rect)
-    def draw_outline(self, screen, color="red"):
-        pygame.draw.rect(screen, color, self.rect, width = 2)
-    def is_clicked(self, pos):
-        return self.rect.collidepoint(pos)
-screen = pygame.display.set_mode((800, 800), pygame.RESIZABLE)
-running = True
-grid = []
-swidth, sheight = screen.get_size()
-cell_w = swidth / 9
-cell_h = sheight / 9
-for row in range(9):
-    grid_row = []
-    for col in range(9):
-        grid_row.append(Cell(row, col, cell_w, cell_h, board[row][col]))
-    grid.append(grid_row)
-selected_cell = None
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            mx, my = pygame.mouse.get_pos()
-            for row in grid:
-                for cell in row:
-                    if cell.is_clicked((mx, my)):
-                        selected_cell = cell
-                        selected_row, selected_col = cell.row, cell.col
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_DOWN:
-                selected_row = min(8, selected_row + 1)
-            elif event.key == pygame.K_UP:
-                selected_row = max(0, selected_row - 1)
-            elif event.key == pygame.K_LEFT:
-                selected_col = max(0, selected_col - 1)
-            elif event.key == pygame.K_RIGHT:
-                selected_col = min(8, selected_col + 1)
-            selected_cell = grid[selected_row][selected_col]
-    swidth, sheight = screen.get_size()
-    cell_w = swidth / 9
-    cell_h = sheight / 9
-    for row in grid:
-        for cell in row:
-            cell.width = cell_w
-            cell.height = cell_h
-            cell.rect = pygame.Rect(cell.col * cell_w, cell.row * cell_h, cell_w, cell_h)
-    screen.fill("beige")
-    for row in grid:
-        for cell in row:
-            cell.draw(screen)
-    for i in range(10):
-        width = 2 if i % 3 == 0 else 1
-        pygame.draw.line(screen, "black", (i*cell_w, 0), (i*cell_w, sheight), width=width)
-        pygame.draw.line(screen, "black", (0, i*cell_h), (swidth, i*cell_h), width=width)
-    if selected_cell:
-        selected_cell.draw_outline(screen)
-    pygame.display.flip()
-pygame.quit()
+import math, random
+
+
+class SudokuGenerator:
+    def __init__(self, row_length, removed_cells):
+        self.row_length = row_length
+        self.removed_cells = removed_cells
+        self.box_length = int(math.sqrt(row_length))
+        self.board = [[0 for _ in range(self.row_length)] for _ in range(self.row_length)]
+
+    def get_board(self):
+        return self.board
+
+    def print_board(self):
+        for row in self.board:
+            print(row)
+
+    def valid_in_row(self, row, num):
+        if num in self.board[row]:
+            return False
+        return True
+
+    def valid_in_col(self, col, num):
+        for r in range(self.row_length):
+            if self.board[r][col] == num:
+                return False
+        return True
+
+    def valid_in_box(self, row_start, col_start, num):
+        for i in range(self.box_length):
+            for j in range(self.box_length):
+                if self.board[row_start + i][col_start + j] == num:
+                    return False
+        return True
+
+    def is_valid(self, row, col, num):
+        return (self.valid_in_row(row, num) and
+                self.valid_in_col(col, num) and
+                self.valid_in_box(row - row % self.box_length, col - col % self.box_length, num))
+
+    def fill_box(self, row_start, col_start):
+        nums = [i for i in range(1, self.row_length + 1)]
+        random.shuffle(nums)
+        for i in range(self.box_length):
+            for j in range(self.box_length):
+                self.board[row_start + i][col_start + j] = nums.pop()
+
+    def fill_diagonal(self):
+        for i in range(0, self.row_length, self.box_length):
+            self.fill_box(i, i)
+
+    def fill_remaining(self, row, col):
+        if (col >= self.row_length and row < self.row_length - 1):
+            row += 1
+            col = 0
+        if row >= self.row_length and col >= self.row_length:
+            return True
+        if row < self.box_length:
+            if col < self.box_length:
+                col = self.box_length
+        elif row < self.row_length - self.box_length:
+            if col == int(row // self.box_length * self.box_length):
+                col += self.box_length
+        else:
+            if col == self.row_length - self.box_length:
+                row += 1
+                col = 0
+                if row >= self.row_length:
+                    return True
+
+        for num in range(1, self.row_length + 1):
+            if self.is_valid(row, col, num):
+                self.board[row][col] = num
+                if self.fill_remaining(row, col + 1):
+                    return True
+                self.board[row][col] = 0
+        return False
+
+    def fill_values(self):
+        self.fill_diagonal()
+        self.fill_remaining(0, self.box_length)
+
+    def remove_cells(self):
+        count = self.removed_cells
+        while count > 0:
+            row = random.randint(0, self.row_length - 1)
+            col = random.randint(0, self.row_length - 1)
+            if self.board[row][col] != 0:
+                self.board[row][col] = 0
+                count -= 1
+
+
+def generate_sudoku(size, removed):
+    # Retry loop: Ensures we never return a broken/unsolvable board
+    while True:
+        sudoku = SudokuGenerator(size, removed)
+        sudoku.fill_values()
+
+        # Check if the board is actually full (valid solution found)
+        is_full_solution = True
+        for row in sudoku.get_board():
+            if 0 in row:
+                is_full_solution = False
+                break
+
+        if is_full_solution:
+            # If valid, proceed to remove cells and return
+            sudoku.remove_cells()
+            return sudoku.get_board()
+        # If not valid, the loop restarts and generates a new random seed
