@@ -21,8 +21,8 @@ GAME_OVER_FONT_SIZE = 60
 
 
 #Cell Class
-# Represents a square in the sudoku grid.
-# Stores the permanent value, temporary value, and the cell selection status.
+# This represents a square in the sudoku grid.
+# It stores the permanent value, temporary value, and the cell selection status.
 class Cell:
     def __init__(self, value, row, col, screen):
         self.value = value
